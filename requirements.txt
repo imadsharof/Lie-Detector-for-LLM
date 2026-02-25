@@ -1,0 +1,13 @@
+# Ignore virtual environment and Python cache
+venv/
+__pycache__/
+
+# Ignore hidden Jupyter Notebook files
+.ipynb_checkpoints/
+
+# Ignore ALL processed data 
+data/processed/
+
+# Ignore the entire raw data folder
+data/raw/*
+!data/raw/pacchiardi_2024_benchmarks/
