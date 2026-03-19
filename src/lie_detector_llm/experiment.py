@@ -9,6 +9,8 @@ from .datasets import DatasetCollection, split_groups
 from .models import extract_last_token_activations
 from .probes import grouped_accuracy, train_probe
 
+PROBE_METHODS = ["dim", "lat", "lr", "pca-g"]
+
 
 @dataclass
 class ExperimentOutputs:
@@ -123,4 +125,117 @@ def run_transfer_experiment(
                 "grouped_accuracy": accuracy,
             }
         )
+    return ExperimentOutputs(results=pd.DataFrame(records))
+
+
+def run_layer_sweep(
+    frame: pd.DataFrame,
+    model_name: str = "distilgpt2",
+    probe_method: str = "lr",
+) -> ExperimentOutputs:
+    """Train and evaluate a probe at every transformer layer.
+
+    This reveals which layers carry the most linearly accessible truth signal —
+    a key analysis from the RepE methodology.
+    """
+    splits = split_groups(frame)
+    activation_cache = extract_last_token_activations(
+        frame["prompt"].tolist(), model_name=model_name
+    )
+    num_layers = activation_cache.activations.shape[1]
+
+    indexed = frame.copy()
+    indexed["row_index"] = np.arange(len(indexed))
+
+    split_frames = {}
+    for split_name, split_frame in splits.items():
+        split_frames[split_name] = indexed[indexed["group_id"].isin(split_frame["group_id"])].copy()
+
+    train_index = split_frames["train"]["row_index"].to_numpy()
+    train_labels = split_frames["train"]["label"].to_numpy(dtype=bool)
+    train_groups = split_frames["train"]["group_id"].to_numpy()
+
+    records = []
+    for layer_idx in range(num_layers):
+        layer_activations = activation_cache.activations[:, layer_idx, :]
+        probe = train_probe(
+            probe_method,
+            activations=layer_activations[train_index],
+            labels=train_labels,
+            groups=train_groups,
+        )
+        for split_name, split_frame in split_frames.items():
+            row_index = split_frame["row_index"].to_numpy()
+            scores = probe.score(layer_activations[row_index])
+            accuracy = grouped_accuracy(
+                scores=scores,
+                labels=split_frame["label"].to_numpy(dtype=bool),
+                groups=split_frame["group_id"].to_numpy(),
+            )
+            records.append(
+                {
+                    "layer": layer_idx,
+                    "split": split_name,
+                    "dataset": frame["dataset_name"].iloc[0],
+                    "probe_method": probe_method,
+                    "model_name": model_name,
+                    "grouped_accuracy": accuracy,
+                }
+            )
+
+    return ExperimentOutputs(results=pd.DataFrame(records))
+
+
+def run_full_transfer_matrix(
+    collection: DatasetCollection,
+    model_name: str = "distilgpt2",
+    probe_method: str = "lr",
+    layer_index: int = -1,
+) -> ExperimentOutputs:
+    """Train a probe on each dataset and evaluate on every other dataset.
+
+    This produces the NxN transfer matrix that tests whether a truthfulness
+    direction learned on one domain generalises to others — the central claim
+    of the RepE paper.
+    """
+    dataset_names = collection.dataset_names()
+
+    all_frame = collection.frame.copy()
+    activation_cache = extract_last_token_activations(
+        all_frame["prompt"].tolist(), model_name=model_name
+    )
+    layer_activations = activation_cache.activations[:, layer_index, :]
+
+    all_frame["row_index"] = np.arange(len(all_frame))
+
+    records = []
+    for train_name in dataset_names:
+        train_rows = all_frame[all_frame["dataset_name"] == train_name]
+        train_idx = train_rows["row_index"].to_numpy()
+        probe = train_probe(
+            probe_method,
+            activations=layer_activations[train_idx],
+            labels=train_rows["label"].to_numpy(dtype=bool),
+            groups=train_rows["group_id"].to_numpy(),
+        )
+        for eval_name in dataset_names:
+            eval_rows = all_frame[all_frame["dataset_name"] == eval_name]
+            row_index = eval_rows["row_index"].to_numpy()
+            scores = probe.score(layer_activations[row_index])
+            accuracy = grouped_accuracy(
+                scores=scores,
+                labels=eval_rows["label"].to_numpy(dtype=bool),
+                groups=eval_rows["group_id"].to_numpy(),
+            )
+            records.append(
+                {
+                    "train_dataset": train_name,
+                    "eval_dataset": eval_name,
+                    "probe_method": probe_method,
+                    "model_name": model_name,
+                    "layer_index": layer_index,
+                    "grouped_accuracy": accuracy,
+                }
+            )
+
     return ExperimentOutputs(results=pd.DataFrame(records))
