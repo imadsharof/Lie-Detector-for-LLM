@@ -1,3 +1,11 @@
+"""Model loading and hidden-state extraction utilities.
+
+This module provides the core functionality for extracting internal
+representations (hidden states) from HuggingFace causal language models.
+The key idea is that a transformer's hidden states at the last token of
+a prompt encode information about the truthfulness of the statement —
+this is what the linear probes in ``probes.py`` are trained to read.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -26,6 +34,14 @@ if disable_progress_bars is not None:
 
 @dataclass
 class ActivationCache:
+    """Container for extracted hidden-state activations.
+
+    Attributes:
+        activations: array of shape (num_prompts, num_layers, hidden_dim).
+            Each entry is the hidden-state vector at the *last token*
+            of the corresponding prompt, at the given transformer layer.
+        layers: list of integer layer indices (0-based).
+    """
     activations: np.ndarray
     layers: list[int]
 
@@ -44,6 +60,7 @@ def _get_huggingface_token() -> str | None:
 
 
 def get_device() -> torch.device:
+    """Auto-detect the best available compute device (CUDA > MPS > CPU)."""
     if torch.cuda.is_available():
         return torch.device("cuda")
     if torch.backends.mps.is_available():
@@ -80,6 +97,15 @@ def extract_last_token_activations(
     batch_size: int = 4,
     show_progress: bool = False,
 ) -> ActivationCache:
+    """Run each prompt through the model and capture hidden-state vectors.
+
+    For every prompt the model performs a single forward pass (no text
+    generation).  At each transformer layer we record the hidden-state
+    vector of the **last token** — this is the point where the model has
+    read the entire prompt and is about to predict the next token.
+
+    Returns an ActivationCache of shape (len(prompts), num_layers, hidden_dim).
+    """
     model, tokenizer, device = load_model_and_tokenizer(model_name, device=device)
     collected_batches: list[np.ndarray] = []
     layer_indices: list[int] | None = None

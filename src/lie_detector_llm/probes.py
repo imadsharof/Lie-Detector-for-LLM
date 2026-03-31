@@ -1,3 +1,17 @@
+"""Linear probes for detecting truthfulness from hidden-state activations.
+
+A *probe* is a lightweight classifier that operates on the hidden-state
+vectors extracted by ``models.extract_last_token_activations``.  Its job is
+to assign a scalar *score* to each vector: higher means 'the model considers
+this statement more likely to be true'.
+
+Four probe families are implemented, following the RepE paper:
+
+* **DIM** (Difference in Means) — the simplest: truth direction = mean(true) - mean(false).
+* **LAT** (Linear Algebraic Treatment) — PCA on random pairwise differences.
+* **LR** (Logistic Regression) — standard supervised linear classifier.
+* **PCA-G** (Grouped PCA) — within-group centering then PCA.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -45,6 +59,7 @@ def _orient_direction(direction: np.ndarray, activations: np.ndarray, labels: np
 
 
 def train_dim_probe(activations: np.ndarray, labels: np.ndarray) -> DotProductProbe:
+    """Difference in Means: direction = mean(true vectors) - mean(false vectors)."""
     pos_mean = activations[labels].mean(axis=0)
     neg_mean = activations[~labels].mean(axis=0)
     direction = pos_mean - neg_mean
@@ -57,6 +72,7 @@ def train_dim_probe(activations: np.ndarray, labels: np.ndarray) -> DotProductPr
 
 
 def train_lat_probe(activations: np.ndarray, labels: np.ndarray, seed: int = 0) -> DotProductProbe:
+    """Linear Algebraic Treatment: PCA on random pairwise activation differences."""
     random = np.random.default_rng(seed)
     indices = random.permutation(len(activations))
     usable = indices[: len(indices) // 2 * 2]
@@ -77,6 +93,11 @@ def train_grouped_pca_probe(
     labels: np.ndarray,
     groups: np.ndarray,
 ) -> DotProductProbe:
+    """Grouped PCA: center each question group then PCA on residuals.
+
+    By subtracting the per-group mean we remove topic-specific variance,
+    isolating the truth/false direction shared across all groups.
+    """
     centered = activations.copy()
     for group in np.unique(groups):
         mask = groups == group
@@ -89,6 +110,7 @@ def train_grouped_pca_probe(
 
 
 def train_logistic_regression_probe(activations: np.ndarray, labels: np.ndarray) -> LogisticRegressionProbe:
+    """Standard supervised logistic regression on hidden-state vectors."""
     model = LogisticRegression(max_iter=10_000, solver="lbfgs")
     model.fit(activations, labels)
     return LogisticRegressionProbe(model=model)
@@ -114,6 +136,12 @@ def train_probe(
 
 
 def grouped_accuracy(scores: np.ndarray, labels: np.ndarray, groups: np.ndarray) -> float:
+    """Compute group-level accuracy: for each question group, select the
+    candidate with the highest probe score and check if it is the true one.
+
+    This is stricter than binary accuracy — the probe must rank the correct
+    answer above *all* distractors within each group, like a multiple-choice exam.
+    """
     correct = 0
     total = 0
     for group in np.unique(groups):

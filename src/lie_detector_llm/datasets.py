@@ -45,18 +45,49 @@ def _make_prompt(question: str, answer: str) -> str:
 
 
 def _build_cities_dataset() -> list[CandidateExample]:
+    """Build a factual geography dataset: 'Which country contains city X?'
+
+    Each question has 1 correct country and 3 plausible distractors,
+    yielding 4 candidate prompts per group.  30 cities across all
+    continents are included to give the probe enough variance.
+    """
     rows: list[CandidateExample] = []
     data = [
+        # Europe
         ("Paris", "France", ["Italy", "Germany", "Spain"]),
+        ("Bern", "Switzerland", ["Austria", "Belgium", "Sweden"]),
+        ("Lisbon", "Portugal", ["Spain", "Brazil", "Italy"]),
+        ("Prague", "Czech Republic", ["Poland", "Austria", "Hungary"]),
+        ("Athens", "Greece", ["Turkey", "Italy", "Cyprus"]),
+        ("Dublin", "Ireland", ["United Kingdom", "Iceland", "Scotland"]),
+        ("Helsinki", "Finland", ["Sweden", "Norway", "Estonia"]),
+        ("Warsaw", "Poland", ["Germany", "Czech Republic", "Ukraine"]),
+        # Asia
         ("Tokyo", "Japan", ["China", "South Korea", "Thailand"]),
-        ("Nairobi", "Kenya", ["Nigeria", "South Africa", "Ghana"]),
+        ("Bangkok", "Thailand", ["Vietnam", "Malaysia", "Indonesia"]),
+        ("Seoul", "South Korea", ["Japan", "China", "North Korea"]),
+        ("Hanoi", "Vietnam", ["Thailand", "Cambodia", "Laos"]),
+        ("Delhi", "India", ["Pakistan", "Bangladesh", "Nepal"]),
+        ("Ankara", "Turkey", ["Greece", "Syria", "Iran"]),
+        # Americas
         ("Lima", "Peru", ["Chile", "Argentina", "Colombia"]),
         ("Ottawa", "Canada", ["United States", "Australia", "Ireland"]),
-        ("Cairo", "Egypt", ["Morocco", "Jordan", "Turkey"]),
-        ("Bern", "Switzerland", ["Austria", "Belgium", "Sweden"]),
-        ("Bangkok", "Thailand", ["Vietnam", "Malaysia", "Indonesia"]),
-        ("Canberra", "Australia", ["New Zealand", "United Kingdom", "Canada"]),
         ("Bogota", "Colombia", ["Venezuela", "Ecuador", "Peru"]),
+        ("Havana", "Cuba", ["Mexico", "Jamaica", "Dominican Republic"]),
+        ("Santiago", "Chile", ["Argentina", "Peru", "Bolivia"]),
+        ("Brasilia", "Brazil", ["Argentina", "Portugal", "Colombia"]),
+        ("Quito", "Ecuador", ["Colombia", "Peru", "Bolivia"]),
+        # Africa
+        ("Nairobi", "Kenya", ["Nigeria", "South Africa", "Ghana"]),
+        ("Cairo", "Egypt", ["Morocco", "Jordan", "Turkey"]),
+        ("Accra", "Ghana", ["Nigeria", "Ivory Coast", "Togo"]),
+        ("Dakar", "Senegal", ["Mali", "Gambia", "Guinea"]),
+        ("Addis Ababa", "Ethiopia", ["Kenya", "Sudan", "Somalia"]),
+        # Oceania & Middle East
+        ("Canberra", "Australia", ["New Zealand", "United Kingdom", "Canada"]),
+        ("Wellington", "New Zealand", ["Australia", "Fiji", "Samoa"]),
+        ("Riyadh", "Saudi Arabia", ["United Arab Emirates", "Iraq", "Qatar"]),
+        ("Tehran", "Iran", ["Iraq", "Afghanistan", "Turkey"]),
     ]
     for city, correct_country, wrong_countries in data:
         question = f"Which country contains the city {city}?"
@@ -77,6 +108,11 @@ def _build_cities_dataset() -> list[CandidateExample]:
 
 
 def _build_larger_than_dataset() -> list[CandidateExample]:
+    """Build a logical/numerical dataset: 'Is A larger than B?'
+
+    Each question has exactly 2 candidates (Yes / No), one correct.
+    30 pairs are included with a mix of easy and tricky comparisons.
+    """
     rows: list[CandidateExample] = []
     pairs = [
         (12, 7),
@@ -89,6 +125,27 @@ def _build_larger_than_dataset() -> list[CandidateExample]:
         (23, 24),
         (300, 10),
         (8, 2),
+        # additional pairs for larger dataset
+        (55, 53),
+        (1000, 999),
+        (3, 30),
+        (67, 89),
+        (250, 125),
+        (14, 41),
+        (99, 100),
+        (500, 50),
+        (7, 70),
+        (33, 33),
+        (48, 47),
+        (201, 200),
+        (9, 11),
+        (150, 151),
+        (88, 44),
+        (6, 60),
+        (444, 443),
+        (19, 20),
+        (75, 57),
+        (1, 1000),
     ]
     for left, right in pairs:
         question = f"Is {left} larger than {right}?"
@@ -110,17 +167,18 @@ def _build_larger_than_dataset() -> list[CandidateExample]:
 
 
 def _build_qa_dataset() -> list[CandidateExample]:
+    """Build a general-knowledge QA dataset spanning science, history, and more.
+
+    Each question has 1 correct answer and 3 plausible distractors
+    (4 candidates per group).  30 questions are included.
+    """
     rows: list[CandidateExample] = []
     data = [
+        # Science
         (
             "What gas do plants absorb from the atmosphere?",
             "Carbon dioxide",
             ["Oxygen", "Nitrogen", "Helium"],
-        ),
-        (
-            "Who wrote Hamlet?",
-            "William Shakespeare",
-            ["Charles Dickens", "Jane Austen", "Homer"],
         ),
         (
             "What is the largest planet in the Solar System?",
@@ -138,11 +196,6 @@ def _build_qa_dataset() -> list[CandidateExample]:
             ["Liver", "Lung", "Kidney"],
         ),
         (
-            "What is the capital of Portugal?",
-            "Lisbon",
-            ["Madrid", "Porto", "Rome"],
-        ),
-        (
             "Which element has the chemical symbol Au?",
             "Gold",
             ["Silver", "Argon", "Copper"],
@@ -151,6 +204,129 @@ def _build_qa_dataset() -> list[CandidateExample]:
             "What is the smallest prime number?",
             "2",
             ["1", "3", "5"],
+        ),
+        (
+            "What is the speed of light in vacuum approximately in km/s?",
+            "300000",
+            ["150000", "1000000", "30000"],
+        ),
+        (
+            "What is the chemical formula for water?",
+            "H2O",
+            ["CO2", "NaCl", "O2"],
+        ),
+        (
+            "How many chromosomes do humans have?",
+            "46",
+            ["23", "48", "44"],
+        ),
+        (
+            "Which planet is closest to the Sun?",
+            "Mercury",
+            ["Venus", "Mars", "Earth"],
+        ),
+        # History & Literature
+        (
+            "Who wrote Hamlet?",
+            "William Shakespeare",
+            ["Charles Dickens", "Jane Austen", "Homer"],
+        ),
+        (
+            "In which year did World War II end?",
+            "1945",
+            ["1939", "1944", "1950"],
+        ),
+        (
+            "Who painted the Mona Lisa?",
+            "Leonardo da Vinci",
+            ["Michelangelo", "Raphael", "Picasso"],
+        ),
+        (
+            "Which ancient civilization built the pyramids of Giza?",
+            "Egyptians",
+            ["Romans", "Greeks", "Mesopotamians"],
+        ),
+        (
+            "Who discovered penicillin?",
+            "Alexander Fleming",
+            ["Louis Pasteur", "Marie Curie", "Joseph Lister"],
+        ),
+        (
+            "What year did the French Revolution begin?",
+            "1789",
+            ["1776", "1804", "1815"],
+        ),
+        (
+            "Who wrote The Origin of Species?",
+            "Charles Darwin",
+            ["Gregor Mendel", "Alfred Wallace", "Thomas Huxley"],
+        ),
+        (
+            "Which empire was ruled by Julius Caesar?",
+            "Roman Empire",
+            ["Greek Empire", "Persian Empire", "Ottoman Empire"],
+        ),
+        # Geography & General Knowledge
+        (
+            "What is the capital of Portugal?",
+            "Lisbon",
+            ["Madrid", "Porto", "Rome"],
+        ),
+        (
+            "What is the longest river in the world?",
+            "Nile",
+            ["Amazon", "Mississippi", "Yangtze"],
+        ),
+        (
+            "Which continent has the most countries?",
+            "Africa",
+            ["Asia", "Europe", "South America"],
+        ),
+        (
+            "What is the tallest mountain in the world?",
+            "Mount Everest",
+            ["K2", "Kangchenjunga", "Mont Blanc"],
+        ),
+        (
+            "Which ocean is the largest?",
+            "Pacific Ocean",
+            ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean"],
+        ),
+        (
+            "What is the most spoken language in the world by native speakers?",
+            "Mandarin Chinese",
+            ["English", "Spanish", "Hindi"],
+        ),
+        (
+            "How many continents are there?",
+            "7",
+            ["5", "6", "8"],
+        ),
+        # Math & Computing
+        (
+            "What is the square root of 144?",
+            "12",
+            ["14", "11", "13"],
+        ),
+        (
+            "What does CPU stand for?",
+            "Central Processing Unit",
+            ["Central Power Unit", "Computer Processing Unit", "Central Program Unit"],
+        ),
+        (
+            "What is the value of pi rounded to two decimal places?",
+            "3.14",
+            ["3.41", "3.12", "2.14"],
+        ),
+        (
+            "Who is considered the father of computer science?",
+            "Alan Turing",
+            ["Charles Babbage", "John von Neumann", "Ada Lovelace"],
+        ),
+        (
+            "What does HTML stand for?",
+            "HyperText Markup Language",
+            ["HyperText Machine Language", "HighText Markup Language", "HyperTool Markup Language"],
         ),
     ]
     for index, (question, correct_answer, wrong_answers) in enumerate(data):
@@ -171,9 +347,18 @@ def _build_qa_dataset() -> list[CandidateExample]:
 
 def _build_repeng_truthful_dataset(
     dataset_path: Path,
-    max_pairs: int = 40,
+    max_pairs: int = 100,
     seed: int = 0,
 ) -> list[CandidateExample]:
+    """Build the RepEng self-report truthfulness dataset from a JSONL file.
+
+    Each line in the JSONL contains a statement and an 'honest' flag.
+    We pair honest and dishonest statements into contrast groups of 2.
+    This dataset tests meta-cognitive truthfulness (the model judging
+    its own honesty) rather than factual correctness.
+
+    Source: https://github.com/mishajw/repeng — truthful.jsonl
+    """
     rows: list[CandidateExample] = []
     if not dataset_path.exists():
         return rows
@@ -239,6 +424,12 @@ def build_dataset_collection(
     include_repeng_truthful: bool = True,
     repeng_truthful_path: str | Path | None = None,
 ) -> DatasetCollection:
+    """Assemble all sub-datasets into a single DatasetCollection.
+
+    Returns a DatasetCollection containing cities, larger_than, qa,
+    and (optionally) repeng_truthful datasets.  Each row has columns:
+    dataset_name, group_id, question, answer, prompt, label.
+    """
     rows = [
         *_build_cities_dataset(),
         *_build_larger_than_dataset(),
@@ -268,6 +459,12 @@ def split_groups(
     validation_fraction: float = 0.2,
     seed: int = 0,
 ) -> dict[str, pd.DataFrame]:
+    """Split question groups into train / validation / test sets.
+
+    Splitting is done at the *group* level (not the row level) so that
+    all candidate answers for the same question stay in the same split.
+    This prevents data leakage between splits.
+    """
     if train_fraction <= 0 or validation_fraction <= 0:
         raise ValueError("Fractions must be strictly positive.")
     if train_fraction + validation_fraction >= 1:

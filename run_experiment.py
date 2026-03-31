@@ -43,7 +43,7 @@ from lie_detector_llm.plotting import (
 RESULTS_DIR = Path(__file__).parent / "results"
 RESULTS_DIR.mkdir(exist_ok=True)
 
-MODEL = "distilgpt2"
+MODEL = "gpt2-medium"
 SEPARATOR = "─" * 70
 
 
@@ -234,9 +234,9 @@ print(f"""
   │  1. In-distribution probing works — the model stores a linear       │
   │     truth signal accessible from hidden states.                     │
   │                                                                     │
-  │  2. Transfer is weak with distilgpt2 (a tiny 82M model). The        │
-  │     RepE paper uses larger instruction-tuned models (Llama, GPT)    │
-  │     where transfer is significantly stronger.                       │
+  │  2. gpt2-medium (355M, 24 layers) provides a much richer           │
+  │     representation space than distilgpt2, allowing better probing   │
+  │     and cross-domain transfer.                                      │
   │                                                                     │
   │  3. Different probe methods have very different transfer profiles:   │
   │     DIM and LAT sometimes transfer where LR fails, and vice versa.  │
