@@ -43,7 +43,7 @@ from lie_detector_llm.plotting import (
 RESULTS_DIR = Path(__file__).parent / "results"
 RESULTS_DIR.mkdir(exist_ok=True)
 
-MODEL = "gpt2-medium"
+MODEL = "microsoft/phi-2"
 SEPARATOR = "─" * 70
 
 

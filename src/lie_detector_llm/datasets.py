@@ -1,3 +1,10 @@
+"""Dataset construction for the Lie Detector project.
+
+Builds contrast-pair datasets where each question group contains one true
+answer and one or more false answers.  Includes both hand-crafted datasets
+(cities, larger_than, qa) and standard benchmarks from the RepE paper
+(TruthfulQA, ARC-Easy, ARC-Challenge, BoolQ) loaded via HuggingFace.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -418,17 +425,132 @@ def _build_repeng_truthful_dataset(
     return rows
 
 
+def _build_truthfulqa_dataset(max_groups: int = 100, seed: int = 0) -> list[CandidateExample]:
+    """Load TruthfulQA multiple-choice from HuggingFace.
+
+    TruthfulQA (Lin et al., 2022) is a benchmark of 817 questions designed
+    to test whether models reproduce common misconceptions.  Each question
+    has several correct and several incorrect answer choices.  We pair them
+    into contrast groups.
+
+    This is one of the key benchmarks used in the original RepE paper.
+    """
+    from datasets import load_dataset
+
+    ds = load_dataset("truthful_qa", "multiple_choice", split="validation")
+    rows: list[CandidateExample] = []
+    random = Random(seed)
+    indices = list(range(len(ds)))
+    random.shuffle(indices)
+
+    for idx in indices[:max_groups]:
+        item = ds[idx]
+        question = item["question"]
+        choices = item["mc1_targets"]["choices"]
+        labels = item["mc1_targets"]["labels"]
+        group_id = f"truthfulqa::{idx}"
+        for answer, lbl in zip(choices, labels):
+            rows.append(CandidateExample(
+                dataset_name="truthfulqa",
+                group_id=group_id,
+                question=question,
+                answer=answer,
+                prompt=_make_prompt(question, answer),
+                label=bool(lbl),
+            ))
+    return rows
+
+
+def _build_arc_dataset(
+    difficulty: str = "ARC-Easy",
+    max_groups: int = 100,
+    seed: int = 0,
+) -> list[CandidateExample]:
+    """Load ARC (AI2 Reasoning Challenge) from HuggingFace.
+
+    ARC (Clark et al., 2018) contains science exam questions at two
+    difficulty levels.  Each question has 3-5 multiple-choice answers.
+    Used in the original RepE comparison pipeline.
+    """
+    from datasets import load_dataset
+
+    ds = load_dataset("allenai/ai2_arc", difficulty, split="validation")
+    ds_name = "arc_easy" if "Easy" in difficulty else "arc_challenge"
+    rows: list[CandidateExample] = []
+    random = Random(seed)
+    indices = list(range(len(ds)))
+    random.shuffle(indices)
+
+    for idx in indices[:max_groups]:
+        item = ds[idx]
+        question = item["question"]
+        choices = item["choices"]["text"]
+        answer_key = item["answerKey"]
+        choice_labels = item["choices"]["label"]
+        group_id = f"{ds_name}::{idx}"
+        for choice_text, choice_label in zip(choices, choice_labels):
+            is_correct = choice_label == answer_key
+            rows.append(CandidateExample(
+                dataset_name=ds_name,
+                group_id=group_id,
+                question=question,
+                answer=choice_text,
+                prompt=_make_prompt(question, choice_text),
+                label=is_correct,
+            ))
+    return rows
+
+
+def _build_boolq_dataset(max_groups: int = 100, seed: int = 0) -> list[CandidateExample]:
+    """Load BoolQ (Boolean Questions) from HuggingFace.
+
+    BoolQ (Clark et al., 2019) contains yes/no questions derived from
+    real web queries.  Each question has a passage and a boolean answer.
+    Used in the RepE DLK (Discovering Latent Knowledge) comparison.
+    """
+    from datasets import load_dataset
+
+    ds = load_dataset("google/boolq", split="validation")
+    rows: list[CandidateExample] = []
+    random = Random(seed)
+    indices = list(range(len(ds)))
+    random.shuffle(indices)
+
+    for idx in indices[:max_groups]:
+        item = ds[idx]
+        question = item["question"]
+        correct_answer = "Yes" if item["answer"] else "No"
+        wrong_answer = "No" if item["answer"] else "Yes"
+        group_id = f"boolq::{idx}"
+        for answer, label in [(correct_answer, True), (wrong_answer, False)]:
+            rows.append(CandidateExample(
+                dataset_name="boolq",
+                group_id=group_id,
+                question=question,
+                answer=answer,
+                prompt=_make_prompt(question, answer),
+                label=label,
+            ))
+    return rows
+
+
 def build_dataset_collection(
     shuffle: bool = True,
     seed: int = 0,
     include_repeng_truthful: bool = True,
     repeng_truthful_path: str | Path | None = None,
+    include_hf_datasets: bool = True,
+    max_hf_groups: int = 100,
 ) -> DatasetCollection:
     """Assemble all sub-datasets into a single DatasetCollection.
 
-    Returns a DatasetCollection containing cities, larger_than, qa,
-    and (optionally) repeng_truthful datasets.  Each row has columns:
-    dataset_name, group_id, question, answer, prompt, label.
+    Returns a DatasetCollection containing:
+    - Hand-crafted: cities, larger_than, qa
+    - RepEng local: repeng_truthful (from truthful.jsonl)
+    - HuggingFace benchmarks (from the RepE paper): truthfulqa, arc_easy,
+      arc_challenge, boolq
+
+    Each row has columns: dataset_name, group_id, question, answer, prompt, label.
     """
     rows = [
         *_build_cities_dataset(),
@@ -443,6 +565,12 @@ def build_dataset_collection(
             project_root = Path(__file__).resolve().parents[2]
             dataset_path = project_root / "data" / "raw" / "repeng" / "truthful.jsonl"
         rows.extend(_build_repeng_truthful_dataset(dataset_path=dataset_path, seed=seed))
+
+    if include_hf_datasets:
+        rows.extend(_build_truthfulqa_dataset(max_groups=max_hf_groups, seed=seed))
+        rows.extend(_build_arc_dataset("ARC-Easy", max_groups=max_hf_groups, seed=seed))
+        rows.extend(_build_arc_dataset("ARC-Challenge", max_groups=max_hf_groups, seed=seed))
+        rows.extend(_build_boolq_dataset(max_groups=max_hf_groups, seed=seed))
 
     frame = pd.DataFrame([row.__dict__ for row in rows])
     if shuffle:

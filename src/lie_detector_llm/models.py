@@ -70,6 +70,12 @@ def get_device() -> torch.device:
 
 @lru_cache(maxsize=4)
 def _load_cached_model_and_tokenizer(model_name: str, device_type: str):
+    """Load and cache a HuggingFace causal LM and its tokenizer.
+
+    For large models (>1B parameters), float16 is used automatically
+    to fit within memory constraints.  The model is moved to the
+    specified device (CUDA, MPS, or CPU) and set to eval mode.
+    """
     token = _get_huggingface_token()
     load_kwargs = {"token": token} if token else {}
 
@@ -77,8 +83,16 @@ def _load_cached_model_and_tokenizer(model_name: str, device_type: str):
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
+    # Use float16 for large models to save memory
+    device = torch.device(device_type)
+    if device_type in ("mps", "cuda"):
+        load_kwargs["torch_dtype"] = torch.float16
+        load_kwargs["device_map"] = device_type
+        load_kwargs["low_cpu_mem_usage"] = True
+
     model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
-    model.to(torch.device(device_type))
+    if "device_map" not in load_kwargs:
+        model.to(device)
     model.eval()
     return model, tokenizer
 
@@ -94,7 +108,7 @@ def extract_last_token_activations(
     prompts: list[str],
     model_name: str = "distilgpt2",
     device: torch.device | None = None,
-    batch_size: int = 4,
+    batch_size: int = 2,
     show_progress: bool = False,
 ) -> ActivationCache:
     """Run each prompt through the model and capture hidden-state vectors.
