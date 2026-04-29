@@ -16,15 +16,15 @@ dependencies = [
     "seaborn",
     "tqdm",
     "torch",
-    "transformers",
-    "accelerate",
+    "transformers>=4.42,<5",
+    "accelerate>=0.33",
     "datasets",
     "python-dotenv",
 ]
 
 [project.optional-dependencies]
 colab = [
-    "bitsandbytes",
+    "bitsandbytes>=0.43.1",
     "sentencepiece",
     "protobuf",
     "huggingface-hub",

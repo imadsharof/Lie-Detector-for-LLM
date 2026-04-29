@@ -87,6 +87,8 @@ def _load_cached_model_and_tokenizer(
     """
     token = _get_huggingface_token()
     load_kwargs = {"token": token} if token else {}
+    if model_name.startswith("microsoft/phi"):
+        load_kwargs["trust_remote_code"] = True
 
     tokenizer = AutoTokenizer.from_pretrained(model_name, **load_kwargs)
     if tokenizer.pad_token is None:
@@ -122,6 +124,8 @@ def _load_cached_model_and_tokenizer(
         load_kwargs["low_cpu_mem_usage"] = True
 
     model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
+    if getattr(model.config, "pad_token_id", None) is None and tokenizer.pad_token_id is not None:
+        model.config.pad_token_id = tokenizer.pad_token_id
     if "device_map" not in load_kwargs:
         model.to(device)
     model.eval()
@@ -133,6 +137,8 @@ def clear_model_cache() -> None:
     _load_cached_model_and_tokenizer.cache_clear()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
+    if hasattr(torch, "mps") and torch.backends.mps.is_available():
+        torch.mps.empty_cache()
 
 
 def load_model_and_tokenizer(

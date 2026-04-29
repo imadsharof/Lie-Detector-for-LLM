@@ -1,0 +1,65 @@
+train_dataset,eval_dataset,probe_method,model_name,layer_index,split_evaluation,eval_split,grouped_accuracy,model_label
+cities,cities,lr,distilgpt2,-1,True,test,0.6666666666666666,DistilGPT-2
+cities,larger_than,lr,distilgpt2,-1,True,test,0.8333333333333334,DistilGPT-2
+cities,qa,lr,distilgpt2,-1,True,test,0.16666666666666666,DistilGPT-2
+cities,repeng_truthful,lr,distilgpt2,-1,True,test,0.5454545454545454,DistilGPT-2
+larger_than,cities,lr,distilgpt2,-1,True,test,0.16666666666666666,DistilGPT-2
+larger_than,larger_than,lr,distilgpt2,-1,True,test,0.6666666666666666,DistilGPT-2
+larger_than,qa,lr,distilgpt2,-1,True,test,0.3333333333333333,DistilGPT-2
+larger_than,repeng_truthful,lr,distilgpt2,-1,True,test,0.7272727272727273,DistilGPT-2
+qa,cities,lr,distilgpt2,-1,True,test,0.5,DistilGPT-2
+qa,larger_than,lr,distilgpt2,-1,True,test,0.8333333333333334,DistilGPT-2
+qa,qa,lr,distilgpt2,-1,True,test,0.16666666666666666,DistilGPT-2
+qa,repeng_truthful,lr,distilgpt2,-1,True,test,0.9090909090909091,DistilGPT-2
+repeng_truthful,cities,lr,distilgpt2,-1,True,test,0.16666666666666666,DistilGPT-2
+repeng_truthful,larger_than,lr,distilgpt2,-1,True,test,0.16666666666666666,DistilGPT-2
+repeng_truthful,qa,lr,distilgpt2,-1,True,test,0.16666666666666666,DistilGPT-2
+repeng_truthful,repeng_truthful,lr,distilgpt2,-1,True,test,1.0,DistilGPT-2
+cities,cities,lr,gpt2,-1,True,test,0.6666666666666666,GPT-2
+cities,larger_than,lr,gpt2,-1,True,test,0.3333333333333333,GPT-2
+cities,qa,lr,gpt2,-1,True,test,0.3333333333333333,GPT-2
+cities,repeng_truthful,lr,gpt2,-1,True,test,0.2727272727272727,GPT-2
+larger_than,cities,lr,gpt2,-1,True,test,0.16666666666666666,GPT-2
+larger_than,larger_than,lr,gpt2,-1,True,test,0.0,GPT-2
+larger_than,qa,lr,gpt2,-1,True,test,0.3333333333333333,GPT-2
+larger_than,repeng_truthful,lr,gpt2,-1,True,test,0.7272727272727273,GPT-2
+qa,cities,lr,gpt2,-1,True,test,0.3333333333333333,GPT-2
+qa,larger_than,lr,gpt2,-1,True,test,0.16666666666666666,GPT-2
+qa,qa,lr,gpt2,-1,True,test,0.3333333333333333,GPT-2
+qa,repeng_truthful,lr,gpt2,-1,True,test,0.7272727272727273,GPT-2
+repeng_truthful,cities,lr,gpt2,-1,True,test,0.3333333333333333,GPT-2
+repeng_truthful,larger_than,lr,gpt2,-1,True,test,0.5,GPT-2
+repeng_truthful,qa,lr,gpt2,-1,True,test,0.3333333333333333,GPT-2
+repeng_truthful,repeng_truthful,lr,gpt2,-1,True,test,0.9090909090909091,GPT-2
+cities,cities,lr,gpt2-medium,-1,True,test,0.6666666666666666,GPT-2 Medium
+cities,larger_than,lr,gpt2-medium,-1,True,test,0.8333333333333334,GPT-2 Medium
+cities,qa,lr,gpt2-medium,-1,True,test,0.16666666666666666,GPT-2 Medium
+cities,repeng_truthful,lr,gpt2-medium,-1,True,test,0.5454545454545454,GPT-2 Medium
+larger_than,cities,lr,gpt2-medium,-1,True,test,0.0,GPT-2 Medium
+larger_than,larger_than,lr,gpt2-medium,-1,True,test,0.5,GPT-2 Medium
+larger_than,qa,lr,gpt2-medium,-1,True,test,0.0,GPT-2 Medium
+larger_than,repeng_truthful,lr,gpt2-medium,-1,True,test,0.5454545454545454,GPT-2 Medium
+qa,cities,lr,gpt2-medium,-1,True,test,0.3333333333333333,GPT-2 Medium
+qa,larger_than,lr,gpt2-medium,-1,True,test,0.16666666666666666,GPT-2 Medium
+qa,qa,lr,gpt2-medium,-1,True,test,0.0,GPT-2 Medium
+qa,repeng_truthful,lr,gpt2-medium,-1,True,test,0.45454545454545453,GPT-2 Medium
+repeng_truthful,cities,lr,gpt2-medium,-1,True,test,0.3333333333333333,GPT-2 Medium
+repeng_truthful,larger_than,lr,gpt2-medium,-1,True,test,0.8333333333333334,GPT-2 Medium
+repeng_truthful,qa,lr,gpt2-medium,-1,True,test,0.0,GPT-2 Medium
+repeng_truthful,repeng_truthful,lr,gpt2-medium,-1,True,test,1.0,GPT-2 Medium
+cities,cities,lr,microsoft/phi-2,-1,True,test,1.0,Phi-2
+cities,larger_than,lr,microsoft/phi-2,-1,True,test,0.8333333333333334,Phi-2
+cities,qa,lr,microsoft/phi-2,-1,True,test,0.8333333333333334,Phi-2
+cities,repeng_truthful,lr,microsoft/phi-2,-1,True,test,1.0,Phi-2
+larger_than,cities,lr,microsoft/phi-2,-1,True,test,1.0,Phi-2
+larger_than,larger_than,lr,microsoft/phi-2,-1,True,test,1.0,Phi-2
+larger_than,qa,lr,microsoft/phi-2,-1,True,test,0.5,Phi-2
+larger_than,repeng_truthful,lr,microsoft/phi-2,-1,True,test,0.5454545454545454,Phi-2
+qa,cities,lr,microsoft/phi-2,-1,True,test,1.0,Phi-2
+qa,larger_than,lr,microsoft/phi-2,-1,True,test,0.8333333333333334,Phi-2
+qa,qa,lr,microsoft/phi-2,-1,True,test,0.8333333333333334,Phi-2
+qa,repeng_truthful,lr,microsoft/phi-2,-1,True,test,1.0,Phi-2
+repeng_truthful,cities,lr,microsoft/phi-2,-1,True,test,0.8333333333333334,Phi-2
+repeng_truthful,larger_than,lr,microsoft/phi-2,-1,True,test,0.8333333333333334,Phi-2
+repeng_truthful,qa,lr,microsoft/phi-2,-1,True,test,0.6666666666666666,Phi-2
+repeng_truthful,repeng_truthful,lr,microsoft/phi-2,-1,True,test,1.0,Phi-2

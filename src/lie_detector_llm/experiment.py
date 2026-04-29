@@ -77,8 +77,6 @@ def run_probe_experiment(
                 "probe_method": probe_method,
                 "model_name": model_name,
                 "layer_index": layer_index,
-                "split_evaluation": split_evaluation,
-                "eval_split": eval_split if split_evaluation else "all",
                 "grouped_accuracy": accuracy,
             }
         )
@@ -177,6 +175,8 @@ def run_transfer_experiment(
                 "probe_method": probe_method,
                 "model_name": model_name,
                 "layer_index": layer_index,
+                "split_evaluation": split_evaluation,
+                "eval_split": eval_split if split_evaluation else "all",
                 "grouped_accuracy": accuracy,
             }
         )

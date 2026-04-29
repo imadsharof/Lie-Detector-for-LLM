@@ -1,0 +1,223 @@
+layer,split,dataset,probe_method,model_name,grouped_accuracy,model_label
+0,train,repeng_truthful,lr,distilgpt2,0.84375,DistilGPT-2
+0,validation,repeng_truthful,lr,distilgpt2,0.7272727272727273,DistilGPT-2
+0,test,repeng_truthful,lr,distilgpt2,0.8181818181818182,DistilGPT-2
+1,train,repeng_truthful,lr,distilgpt2,0.875,DistilGPT-2
+1,validation,repeng_truthful,lr,distilgpt2,0.7272727272727273,DistilGPT-2
+1,test,repeng_truthful,lr,distilgpt2,0.9090909090909091,DistilGPT-2
+2,train,repeng_truthful,lr,distilgpt2,1.0,DistilGPT-2
+2,validation,repeng_truthful,lr,distilgpt2,0.8181818181818182,DistilGPT-2
+2,test,repeng_truthful,lr,distilgpt2,0.9090909090909091,DistilGPT-2
+3,train,repeng_truthful,lr,distilgpt2,1.0,DistilGPT-2
+3,validation,repeng_truthful,lr,distilgpt2,0.8181818181818182,DistilGPT-2
+3,test,repeng_truthful,lr,distilgpt2,0.9090909090909091,DistilGPT-2
+4,train,repeng_truthful,lr,distilgpt2,1.0,DistilGPT-2
+4,validation,repeng_truthful,lr,distilgpt2,1.0,DistilGPT-2
+4,test,repeng_truthful,lr,distilgpt2,1.0,DistilGPT-2
+5,train,repeng_truthful,lr,distilgpt2,0.90625,DistilGPT-2
+5,validation,repeng_truthful,lr,distilgpt2,0.8181818181818182,DistilGPT-2
+5,test,repeng_truthful,lr,distilgpt2,1.0,DistilGPT-2
+0,train,repeng_truthful,lr,gpt2,0.90625,GPT-2
+0,validation,repeng_truthful,lr,gpt2,0.8181818181818182,GPT-2
+0,test,repeng_truthful,lr,gpt2,1.0,GPT-2
+1,train,repeng_truthful,lr,gpt2,0.9375,GPT-2
+1,validation,repeng_truthful,lr,gpt2,0.8181818181818182,GPT-2
+1,test,repeng_truthful,lr,gpt2,0.7272727272727273,GPT-2
+2,train,repeng_truthful,lr,gpt2,0.9375,GPT-2
+2,validation,repeng_truthful,lr,gpt2,0.7272727272727273,GPT-2
+2,test,repeng_truthful,lr,gpt2,0.8181818181818182,GPT-2
+3,train,repeng_truthful,lr,gpt2,0.96875,GPT-2
+3,validation,repeng_truthful,lr,gpt2,0.7272727272727273,GPT-2
+3,test,repeng_truthful,lr,gpt2,0.9090909090909091,GPT-2
+4,train,repeng_truthful,lr,gpt2,1.0,GPT-2
+4,validation,repeng_truthful,lr,gpt2,1.0,GPT-2
+4,test,repeng_truthful,lr,gpt2,0.9090909090909091,GPT-2
+5,train,repeng_truthful,lr,gpt2,1.0,GPT-2
+5,validation,repeng_truthful,lr,gpt2,0.9090909090909091,GPT-2
+5,test,repeng_truthful,lr,gpt2,0.9090909090909091,GPT-2
+6,train,repeng_truthful,lr,gpt2,1.0,GPT-2
+6,validation,repeng_truthful,lr,gpt2,1.0,GPT-2
+6,test,repeng_truthful,lr,gpt2,0.9090909090909091,GPT-2
+7,train,repeng_truthful,lr,gpt2,1.0,GPT-2
+7,validation,repeng_truthful,lr,gpt2,1.0,GPT-2
+7,test,repeng_truthful,lr,gpt2,0.9090909090909091,GPT-2
+8,train,repeng_truthful,lr,gpt2,1.0,GPT-2
+8,validation,repeng_truthful,lr,gpt2,1.0,GPT-2
+8,test,repeng_truthful,lr,gpt2,0.9090909090909091,GPT-2
+9,train,repeng_truthful,lr,gpt2,1.0,GPT-2
+9,validation,repeng_truthful,lr,gpt2,1.0,GPT-2
+9,test,repeng_truthful,lr,gpt2,0.9090909090909091,GPT-2
+10,train,repeng_truthful,lr,gpt2,1.0,GPT-2
+10,validation,repeng_truthful,lr,gpt2,1.0,GPT-2
+10,test,repeng_truthful,lr,gpt2,0.9090909090909091,GPT-2
+11,train,repeng_truthful,lr,gpt2,0.96875,GPT-2
+11,validation,repeng_truthful,lr,gpt2,1.0,GPT-2
+11,test,repeng_truthful,lr,gpt2,0.9090909090909091,GPT-2
+0,train,repeng_truthful,lr,gpt2-medium,0.90625,GPT-2 Medium
+0,validation,repeng_truthful,lr,gpt2-medium,0.8181818181818182,GPT-2 Medium
+0,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+1,train,repeng_truthful,lr,gpt2-medium,0.9375,GPT-2 Medium
+1,validation,repeng_truthful,lr,gpt2-medium,0.8181818181818182,GPT-2 Medium
+1,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+2,train,repeng_truthful,lr,gpt2-medium,0.9375,GPT-2 Medium
+2,validation,repeng_truthful,lr,gpt2-medium,0.7272727272727273,GPT-2 Medium
+2,test,repeng_truthful,lr,gpt2-medium,0.8181818181818182,GPT-2 Medium
+3,train,repeng_truthful,lr,gpt2-medium,0.9375,GPT-2 Medium
+3,validation,repeng_truthful,lr,gpt2-medium,0.7272727272727273,GPT-2 Medium
+3,test,repeng_truthful,lr,gpt2-medium,0.8181818181818182,GPT-2 Medium
+4,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+4,validation,repeng_truthful,lr,gpt2-medium,0.7272727272727273,GPT-2 Medium
+4,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+5,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+5,validation,repeng_truthful,lr,gpt2-medium,0.9090909090909091,GPT-2 Medium
+5,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+6,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+6,validation,repeng_truthful,lr,gpt2-medium,0.9090909090909091,GPT-2 Medium
+6,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+7,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+7,validation,repeng_truthful,lr,gpt2-medium,0.9090909090909091,GPT-2 Medium
+7,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+8,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+8,validation,repeng_truthful,lr,gpt2-medium,0.9090909090909091,GPT-2 Medium
+8,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+9,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+9,validation,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+9,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+10,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+10,validation,repeng_truthful,lr,gpt2-medium,0.9090909090909091,GPT-2 Medium
+10,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+11,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+11,validation,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+11,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+12,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+12,validation,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+12,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+13,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+13,validation,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+13,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+14,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+14,validation,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+14,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+15,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+15,validation,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+15,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+16,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+16,validation,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+16,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+17,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+17,validation,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+17,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+18,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+18,validation,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+18,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+19,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+19,validation,repeng_truthful,lr,gpt2-medium,0.9090909090909091,GPT-2 Medium
+19,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+20,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+20,validation,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+20,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+21,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+21,validation,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+21,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+22,train,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+22,validation,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+22,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+23,train,repeng_truthful,lr,gpt2-medium,0.96875,GPT-2 Medium
+23,validation,repeng_truthful,lr,gpt2-medium,0.8181818181818182,GPT-2 Medium
+23,test,repeng_truthful,lr,gpt2-medium,1.0,GPT-2 Medium
+0,train,repeng_truthful,lr,microsoft/phi-2,0.9375,Phi-2
+0,validation,repeng_truthful,lr,microsoft/phi-2,0.8181818181818182,Phi-2
+0,test,repeng_truthful,lr,microsoft/phi-2,0.8181818181818182,Phi-2
+1,train,repeng_truthful,lr,microsoft/phi-2,0.96875,Phi-2
+1,validation,repeng_truthful,lr,microsoft/phi-2,0.8181818181818182,Phi-2
+1,test,repeng_truthful,lr,microsoft/phi-2,0.9090909090909091,Phi-2
+2,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+2,validation,repeng_truthful,lr,microsoft/phi-2,0.9090909090909091,Phi-2
+2,test,repeng_truthful,lr,microsoft/phi-2,0.9090909090909091,Phi-2
+3,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+3,validation,repeng_truthful,lr,microsoft/phi-2,0.9090909090909091,Phi-2
+3,test,repeng_truthful,lr,microsoft/phi-2,0.9090909090909091,Phi-2
+4,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+4,validation,repeng_truthful,lr,microsoft/phi-2,0.9090909090909091,Phi-2
+4,test,repeng_truthful,lr,microsoft/phi-2,0.9090909090909091,Phi-2
+5,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+5,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+5,test,repeng_truthful,lr,microsoft/phi-2,0.9090909090909091,Phi-2
+6,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+6,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+6,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+7,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+7,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+7,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+8,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+8,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+8,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+9,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+9,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+9,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+10,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+10,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+10,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+11,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+11,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+11,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+12,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+12,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+12,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+13,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+13,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+13,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+14,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+14,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+14,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+15,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+15,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+15,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+16,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+16,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+16,test,repeng_truthful,lr,microsoft/phi-2,0.9090909090909091,Phi-2
+17,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+17,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+17,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+18,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+18,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+18,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+19,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+19,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+19,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+20,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+20,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+20,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+21,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+21,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+21,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+22,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+22,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+22,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+23,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+23,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+23,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+24,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+24,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+24,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+25,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+25,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+25,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+26,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+26,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+26,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+27,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+27,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+27,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+28,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+28,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+28,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+29,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+29,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+29,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+30,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+30,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+30,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+31,train,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+31,validation,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2
+31,test,repeng_truthful,lr,microsoft/phi-2,1.0,Phi-2

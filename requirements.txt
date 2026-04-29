@@ -5,8 +5,9 @@ matplotlib
 seaborn
 tqdm
 torch
-transformers
-accelerate
+transformers>=4.42,<5
+accelerate>=0.33
 datasets
 ipykernel
+nbconvert
 python-dotenv
