@@ -137,6 +137,7 @@ for method in ["dim", "lat", "lr", "pca-g"]:
         model_name=MODEL,
         probe_method=method,
         layer_index=-1,
+        split_evaluation=True,
     )
     transfer_rows.append(out.summary_table())
 
@@ -164,6 +165,7 @@ full_matrix = run_full_transfer_matrix(
     model_name=MODEL,
     probe_method="lr",
     layer_index=-1,
+    split_evaluation=True,
 )
 pivot = full_matrix.results.pivot(
     index="train_dataset", columns="eval_dataset", values="grouped_accuracy"
@@ -234,9 +236,9 @@ print(f"""
   │  1. In-distribution probing works — the model stores a linear       │
   │     truth signal accessible from hidden states.                     │
   │                                                                     │
-  │  2. gpt2-medium (355M, 24 layers) provides a much richer           │
-  │     representation space than distilgpt2, allowing better probing   │
-  │     and cross-domain transfer.                                      │
+  │  2. Phi-2 (2.7B, 32 layers) provides the current local baseline,    │
+  │     but it is still smaller than the RepEng reference               │
+  │     model and the 70B comparison models.                            │
   │                                                                     │
   │  3. Different probe methods have very different transfer profiles:   │
   │     DIM and LAT sometimes transfer where LR fails, and vice versa.  │

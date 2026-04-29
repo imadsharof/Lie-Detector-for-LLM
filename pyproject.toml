@@ -18,7 +18,16 @@ dependencies = [
     "torch",
     "transformers",
     "accelerate",
+    "datasets",
     "python-dotenv",
+]
+
+[project.optional-dependencies]
+colab = [
+    "bitsandbytes",
+    "sentencepiece",
+    "protobuf",
+    "huggingface-hub",
 ]
 
 [tool.setuptools]

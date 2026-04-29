@@ -7,5 +7,6 @@ tqdm
 torch
 transformers
 accelerate
+datasets
 ipykernel
 python-dotenv

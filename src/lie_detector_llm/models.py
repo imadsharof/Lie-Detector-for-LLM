@@ -24,6 +24,11 @@ try:
 except ImportError:
     disable_progress_bars = None
 
+try:
+    from transformers import BitsAndBytesConfig
+except ImportError:
+    BitsAndBytesConfig = None
+
 
 load_dotenv()
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
@@ -69,12 +74,16 @@ def get_device() -> torch.device:
 
 
 @lru_cache(maxsize=4)
-def _load_cached_model_and_tokenizer(model_name: str, device_type: str):
+def _load_cached_model_and_tokenizer(
+    model_name: str,
+    device_type: str,
+    load_in_4bit: bool,
+):
     """Load and cache a HuggingFace causal LM and its tokenizer.
 
-    For large models (>1B parameters), float16 is used automatically
-    to fit within memory constraints.  The model is moved to the
-    specified device (CUDA, MPS, or CPU) and set to eval mode.
+    CUDA models use reduced precision automatically. If ``load_in_4bit``
+    is enabled, the model is loaded with bitsandbytes NF4 quantization,
+    which is useful for Colab runs on 7B, 8B, and possibly 70B models.
     """
     token = _get_huggingface_token()
     load_kwargs = {"token": token} if token else {}
@@ -83,11 +92,33 @@ def _load_cached_model_and_tokenizer(model_name: str, device_type: str):
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    # Use float16 for large models to save memory
     device = torch.device(device_type)
-    if device_type in ("mps", "cuda"):
+
+    if load_in_4bit:
+        if device_type != "cuda":
+            raise ValueError(
+                "4-bit loading requires a CUDA GPU. Disable load_in_4bit on CPU/MPS."
+            )
+        if BitsAndBytesConfig is None:
+            raise ImportError(
+                "4-bit loading requires bitsandbytes. Install it with `pip install bitsandbytes`."
+            )
+        load_kwargs["quantization_config"] = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_use_double_quant=True,
+        )
+        load_kwargs["device_map"] = "auto"
+        load_kwargs["low_cpu_mem_usage"] = True
+    elif device_type == "cuda":
+        load_kwargs["torch_dtype"] = (
+            torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+        )
+        load_kwargs["device_map"] = "auto"
+        load_kwargs["low_cpu_mem_usage"] = True
+    elif device_type == "mps":
         load_kwargs["torch_dtype"] = torch.float16
-        load_kwargs["device_map"] = device_type
         load_kwargs["low_cpu_mem_usage"] = True
 
     model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
@@ -97,18 +128,34 @@ def _load_cached_model_and_tokenizer(model_name: str, device_type: str):
     return model, tokenizer
 
 
-def load_model_and_tokenizer(model_name: str, device: torch.device | None = None):
+def clear_model_cache() -> None:
+    """Release cached Hugging Face models between large-model runs."""
+    _load_cached_model_and_tokenizer.cache_clear()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+
+def load_model_and_tokenizer(
+    model_name: str,
+    device: torch.device | None = None,
+    load_in_4bit: bool = False,
+):
     device = device or get_device()
-    model, tokenizer = _load_cached_model_and_tokenizer(model_name, device.type)
+    model, tokenizer = _load_cached_model_and_tokenizer(
+        model_name,
+        device.type,
+        load_in_4bit,
+    )
     return model, tokenizer, device
 
 
 @torch.inference_mode()
 def extract_last_token_activations(
     prompts: list[str],
-    model_name: str = "distilgpt2",
+    model_name: str = "microsoft/phi-2",
     device: torch.device | None = None,
     batch_size: int = 2,
+    load_in_4bit: bool = False,
     show_progress: bool = False,
 ) -> ActivationCache:
     """Run each prompt through the model and capture hidden-state vectors.
@@ -120,7 +167,11 @@ def extract_last_token_activations(
 
     Returns an ActivationCache of shape (len(prompts), num_layers, hidden_dim).
     """
-    model, tokenizer, device = load_model_and_tokenizer(model_name, device=device)
+    model, tokenizer, device = load_model_and_tokenizer(
+        model_name,
+        device=device,
+        load_in_4bit=load_in_4bit,
+    )
     collected_batches: list[np.ndarray] = []
     layer_indices: list[int] | None = None
 
@@ -155,7 +206,13 @@ def extract_last_token_activations(
             layer_vectors = []
             token_position = int(last_token_positions[batch_index].item())
             for layer_tensor in layers:
-                vector = layer_tensor[batch_index, token_position].detach().cpu().numpy()
+                vector = (
+                    layer_tensor[batch_index, token_position]
+                    .detach()
+                    .to(dtype=torch.float32)
+                    .cpu()
+                    .numpy()
+                )
                 layer_vectors.append(vector)
             batch_activations.append(np.stack(layer_vectors, axis=0))
 
