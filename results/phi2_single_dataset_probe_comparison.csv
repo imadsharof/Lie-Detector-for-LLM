@@ -1,0 +1,13 @@
+split,dataset,probe_method,model_name,layer,requested_layer,grouped_accuracy
+train,dbpedia_14,dim,microsoft/phi-2,18,18,0.9666666666666667
+validation,dbpedia_14,dim,microsoft/phi-2,18,18,0.8
+test,dbpedia_14,dim,microsoft/phi-2,18,18,0.9
+train,dbpedia_14,lat,microsoft/phi-2,18,18,0.23333333333333334
+validation,dbpedia_14,lat,microsoft/phi-2,18,18,0.5
+test,dbpedia_14,lat,microsoft/phi-2,18,18,0.3
+train,dbpedia_14,lr,microsoft/phi-2,18,18,1.0
+validation,dbpedia_14,lr,microsoft/phi-2,18,18,0.8
+test,dbpedia_14,lr,microsoft/phi-2,18,18,0.9
+train,dbpedia_14,pca-g,microsoft/phi-2,18,18,0.9666666666666667
+validation,dbpedia_14,pca-g,microsoft/phi-2,18,18,0.8
+test,dbpedia_14,pca-g,microsoft/phi-2,18,18,0.9

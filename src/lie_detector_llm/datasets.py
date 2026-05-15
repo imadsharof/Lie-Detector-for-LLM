@@ -1,26 +1,74 @@
-"""Dataset construction for the Lie Detector project.
+"""Dataset construction for Phi-2 truth-probe generalisation.
 
-Builds contrast-pair datasets where each question group contains one true
-answer and one or more false answers.  Includes both hand-crafted datasets
-(cities, larger_than, qa) and standard benchmarks from the RepE paper
-(TruthfulQA, ARC-Easy, ARC-Challenge, BoolQ) loaded via HuggingFace.
+All rows are converted to the same contrastive format:
+
+* one ``group_id`` is one question or claim context,
+* each group contains candidate answers/statements,
+* at least one candidate is true and at least one is false,
+* every candidate is wrapped in the same non-chat Phi-2 prompt template.
+
+The default collection mixes dataset families used in the original
+generalisation study: DLK-style text classification, RepE-style multiple
+choice QA, TruthfulQA, the local repeng truthful JSONL file, and a small
+GoT-style ``facts`` dataset of simple factual statements.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 from random import Random
+from typing import Callable
 
 import pandas as pd
 
 
-REPE_TEMPLATE = (
-    "Consider the correctness of the answer to the following question:\n\n"
-    "Question: {question}\n"
-    "Answer: {answer}\n"
-    "The probability of the answer being correct is"
+PHI2_PROMPT_TEMPLATE = (
+    "Task: Decide whether the candidate answer is correct.\n\n"
+    "Question:\n{question}\n\n"
+    "Candidate answer:\n{answer}\n\n"
+    "Correctness:"
 )
+
+# Backwards-compatible name used by earlier notebooks.
+REPE_TEMPLATE = PHI2_PROMPT_TEMPLATE
+
+ALL_DATASET_NAMES: list[str] = [
+    "facts",
+    "amazon_polarity",
+    "dbpedia_14",
+    "ag_news",
+    "imdb",
+    "rte",
+    "boolq",
+    "arc_easy",
+    "arc_challenge",
+    "openbookqa",
+    "commonsense_qa",
+    "piqa",
+    "truthful_qa",
+    "repeng_truthful",
+]
+
+DEFAULT_DATASET_NAMES: list[str] = [
+    "facts",
+    "dbpedia_14",
+    "amazon_polarity",
+    "boolq",
+    "arc_easy",
+    "truthful_qa",
+    "repeng_truthful",
+]
+
+DATASET_ALIASES: dict[str, str] = {
+    "dbpedia": "dbpedia_14",
+    "open_book_qa": "openbookqa",
+    "common_sense_qa": "commonsense_qa",
+    "commonsenseqa": "commonsense_qa",
+}
+
+_MAX_CONTEXT_CHARS = 1_200
 
 
 @dataclass(frozen=True)
@@ -41,542 +89,517 @@ class DatasetCollection:
         return sorted(self.frame["dataset_name"].unique().tolist())
 
     def subset(self, dataset_name: str) -> pd.DataFrame:
+        dataset_name = normalise_dataset_name(dataset_name)
         subset = self.frame[self.frame["dataset_name"] == dataset_name].copy()
         if subset.empty:
-            raise ValueError(f"Unknown dataset: {dataset_name}")
+            raise ValueError(f"Unknown or empty dataset: {dataset_name}")
         return subset.reset_index(drop=True)
+
+    def summary(self) -> pd.DataFrame:
+        return (
+            self.frame.groupby("dataset_name", as_index=False)
+            .agg(groups=("group_id", "nunique"), prompts=("prompt", "size"))
+            .sort_values("dataset_name")
+        )
+
+
+def normalise_dataset_name(name: str) -> str:
+    return DATASET_ALIASES.get(name, name)
+
+
+def _hf_token() -> str | None:
+    for name in ("HF_TOKEN", "HUGGINGFACE_TOKEN", "HF_HUB_TOKEN", "HUGGINGFACEHUB_API_TOKEN"):
+        token = os.getenv(name)
+        if token:
+            return token
+    return None
+
+
+def _load_hf(path: str, name: str | None, split: str):
+    from datasets import load_dataset
+
+    kwargs = {"split": split}
+    token = _hf_token()
+    if token:
+        kwargs["token"] = token
+    if name is None:
+        return load_dataset(path, **kwargs)
+    return load_dataset(path, name, **kwargs)
+
+
+def _clip(text: object) -> str:
+    text = " ".join(str(text).split())
+    return text if len(text) <= _MAX_CONTEXT_CHARS else text[:_MAX_CONTEXT_CHARS] + " ..."
 
 
 def _make_prompt(question: str, answer: str) -> str:
-    return REPE_TEMPLATE.format(question=question, answer=answer)
+    return PHI2_PROMPT_TEMPLATE.format(question=_clip(question), answer=_clip(answer))
 
 
-def _build_cities_dataset() -> list[CandidateExample]:
-    """Build a factual geography dataset: 'Which country contains city X?'
-
-    Each question has 1 correct country and 3 plausible distractors,
-    yielding 4 candidate prompts per group.  30 cities across all
-    continents are included to give the probe enough variance.
-    """
-    rows: list[CandidateExample] = []
-    data = [
-        # Europe
-        ("Paris", "France", ["Italy", "Germany", "Spain"]),
-        ("Bern", "Switzerland", ["Austria", "Belgium", "Sweden"]),
-        ("Lisbon", "Portugal", ["Spain", "Brazil", "Italy"]),
-        ("Prague", "Czech Republic", ["Poland", "Austria", "Hungary"]),
-        ("Athens", "Greece", ["Turkey", "Italy", "Cyprus"]),
-        ("Dublin", "Ireland", ["United Kingdom", "Iceland", "Scotland"]),
-        ("Helsinki", "Finland", ["Sweden", "Norway", "Estonia"]),
-        ("Warsaw", "Poland", ["Germany", "Czech Republic", "Ukraine"]),
-        # Asia
-        ("Tokyo", "Japan", ["China", "South Korea", "Thailand"]),
-        ("Bangkok", "Thailand", ["Vietnam", "Malaysia", "Indonesia"]),
-        ("Seoul", "South Korea", ["Japan", "China", "North Korea"]),
-        ("Hanoi", "Vietnam", ["Thailand", "Cambodia", "Laos"]),
-        ("Delhi", "India", ["Pakistan", "Bangladesh", "Nepal"]),
-        ("Ankara", "Turkey", ["Greece", "Syria", "Iran"]),
-        # Americas
-        ("Lima", "Peru", ["Chile", "Argentina", "Colombia"]),
-        ("Ottawa", "Canada", ["United States", "Australia", "Ireland"]),
-        ("Bogota", "Colombia", ["Venezuela", "Ecuador", "Peru"]),
-        ("Havana", "Cuba", ["Mexico", "Jamaica", "Dominican Republic"]),
-        ("Santiago", "Chile", ["Argentina", "Peru", "Bolivia"]),
-        ("Brasilia", "Brazil", ["Argentina", "Portugal", "Colombia"]),
-        ("Quito", "Ecuador", ["Colombia", "Peru", "Bolivia"]),
-        # Africa
-        ("Nairobi", "Kenya", ["Nigeria", "South Africa", "Ghana"]),
-        ("Cairo", "Egypt", ["Morocco", "Jordan", "Turkey"]),
-        ("Accra", "Ghana", ["Nigeria", "Ivory Coast", "Togo"]),
-        ("Dakar", "Senegal", ["Mali", "Gambia", "Guinea"]),
-        ("Addis Ababa", "Ethiopia", ["Kenya", "Sudan", "Somalia"]),
-        # Oceania & Middle East
-        ("Canberra", "Australia", ["New Zealand", "United Kingdom", "Canada"]),
-        ("Wellington", "New Zealand", ["Australia", "Fiji", "Samoa"]),
-        ("Riyadh", "Saudi Arabia", ["United Arab Emirates", "Iraq", "Qatar"]),
-        ("Tehran", "Iran", ["Iraq", "Afghanistan", "Turkey"]),
-    ]
-    for city, correct_country, wrong_countries in data:
-        question = f"Which country contains the city {city}?"
-        group_id = f"cities::{city}"
-        all_answers = [correct_country, *wrong_countries]
-        for answer in all_answers:
-            rows.append(
-                CandidateExample(
-                    dataset_name="cities",
-                    group_id=group_id,
-                    question=question,
-                    answer=answer,
-                    prompt=_make_prompt(question, answer),
-                    label=answer == correct_country,
-                )
+def _emit(
+    rows: list[CandidateExample],
+    dataset_name: str,
+    group_id: str,
+    question: str,
+    candidates: list[tuple[str, bool]],
+) -> None:
+    if len(candidates) < 2:
+        return
+    labels = [bool(label) for _, label in candidates]
+    if not any(labels) or all(labels):
+        return
+    for answer, label in candidates:
+        answer = _clip(answer)
+        question = _clip(question)
+        rows.append(
+            CandidateExample(
+                dataset_name=dataset_name,
+                group_id=group_id,
+                question=question,
+                answer=answer,
+                prompt=_make_prompt(question, answer),
+                label=bool(label),
             )
-    return rows
+        )
 
 
-def _build_larger_than_dataset() -> list[CandidateExample]:
-    """Build a logical/numerical dataset: 'Is A larger than B?'
-
-    Each question has exactly 2 candidates (Yes / No), one correct.
-    30 pairs are included with a mix of easy and tricky comparisons.
-    """
-    rows: list[CandidateExample] = []
-    pairs = [
-        (12, 7),
-        (31, 5),
-        (18, 42),
-        (90, 12),
-        (4, 15),
-        (77, 56),
-        (101, 99),
-        (23, 24),
-        (300, 10),
-        (8, 2),
-        # additional pairs for larger dataset
-        (55, 53),
-        (1000, 999),
-        (3, 30),
-        (67, 89),
-        (250, 125),
-        (14, 41),
-        (99, 100),
-        (500, 50),
-        (7, 70),
-        (33, 33),
-        (48, 47),
-        (201, 200),
-        (9, 11),
-        (150, 151),
-        (88, 44),
-        (6, 60),
-        (444, 443),
-        (19, 20),
-        (75, 57),
-        (1, 1000),
-    ]
-    for left, right in pairs:
-        question = f"Is {left} larger than {right}?"
-        group_id = f"larger_than::{left}::{right}"
-        truth_value = "Yes" if left > right else "No"
-        false_value = "No" if truth_value == "Yes" else "Yes"
-        for answer, label in [(truth_value, True), (false_value, False)]:
-            rows.append(
-                CandidateExample(
-                    dataset_name="larger_than",
-                    group_id=group_id,
-                    question=question,
-                    answer=answer,
-                    prompt=_make_prompt(question, answer),
-                    label=label,
-                )
-            )
-    return rows
+def _shuffled_indices(n: int, seed: int) -> list[int]:
+    indices = list(range(n))
+    Random(seed).shuffle(indices)
+    return indices
 
 
-def _build_qa_dataset() -> list[CandidateExample]:
-    """Build a general-knowledge QA dataset spanning science, history, and more.
-
-    Each question has 1 correct answer and 3 plausible distractors
-    (4 candidates per group).  30 questions are included.
-    """
-    rows: list[CandidateExample] = []
-    data = [
-        # Science
-        (
-            "What gas do plants absorb from the atmosphere?",
-            "Carbon dioxide",
-            ["Oxygen", "Nitrogen", "Helium"],
-        ),
-        (
-            "What is the largest planet in the Solar System?",
-            "Jupiter",
-            ["Mars", "Venus", "Saturn"],
-        ),
-        (
-            "What is the boiling point of water at sea level in degrees Celsius?",
-            "100",
-            ["0", "50", "212"],
-        ),
-        (
-            "Which organ pumps blood through the human body?",
-            "Heart",
-            ["Liver", "Lung", "Kidney"],
-        ),
-        (
-            "Which element has the chemical symbol Au?",
-            "Gold",
-            ["Silver", "Argon", "Copper"],
-        ),
-        (
-            "What is the smallest prime number?",
-            "2",
-            ["1", "3", "5"],
-        ),
-        (
-            "What is the speed of light in vacuum approximately in km/s?",
-            "300000",
-            ["150000", "1000000", "30000"],
-        ),
-        (
-            "What is the chemical formula for water?",
-            "H2O",
-            ["CO2", "NaCl", "O2"],
-        ),
-        (
-            "How many chromosomes do humans have?",
-            "46",
-            ["23", "48", "44"],
-        ),
-        (
-            "Which planet is closest to the Sun?",
-            "Mercury",
-            ["Venus", "Mars", "Earth"],
-        ),
-        # History & Literature
-        (
-            "Who wrote Hamlet?",
-            "William Shakespeare",
-            ["Charles Dickens", "Jane Austen", "Homer"],
-        ),
-        (
-            "In which year did World War II end?",
-            "1945",
-            ["1939", "1944", "1950"],
-        ),
-        (
-            "Who painted the Mona Lisa?",
-            "Leonardo da Vinci",
-            ["Michelangelo", "Raphael", "Picasso"],
-        ),
-        (
-            "Which ancient civilization built the pyramids of Giza?",
-            "Egyptians",
-            ["Romans", "Greeks", "Mesopotamians"],
-        ),
-        (
-            "Who discovered penicillin?",
-            "Alexander Fleming",
-            ["Louis Pasteur", "Marie Curie", "Joseph Lister"],
-        ),
-        (
-            "What year did the French Revolution begin?",
-            "1789",
-            ["1776", "1804", "1815"],
-        ),
-        (
-            "Who wrote The Origin of Species?",
-            "Charles Darwin",
-            ["Gregor Mendel", "Alfred Wallace", "Thomas Huxley"],
-        ),
-        (
-            "Which empire was ruled by Julius Caesar?",
-            "Roman Empire",
-            ["Greek Empire", "Persian Empire", "Ottoman Empire"],
-        ),
-        # Geography & General Knowledge
-        (
-            "What is the capital of Portugal?",
-            "Lisbon",
-            ["Madrid", "Porto", "Rome"],
-        ),
-        (
-            "What is the longest river in the world?",
-            "Nile",
-            ["Amazon", "Mississippi", "Yangtze"],
-        ),
-        (
-            "Which continent has the most countries?",
-            "Africa",
-            ["Asia", "Europe", "South America"],
-        ),
-        (
-            "What is the tallest mountain in the world?",
-            "Mount Everest",
-            ["K2", "Kangchenjunga", "Mont Blanc"],
-        ),
-        (
-            "Which ocean is the largest?",
-            "Pacific Ocean",
-            ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean"],
-        ),
-        (
-            "What is the most spoken language in the world by native speakers?",
-            "Mandarin Chinese",
-            ["English", "Spanish", "Hindi"],
-        ),
-        (
-            "How many continents are there?",
-            "7",
-            ["5", "6", "8"],
-        ),
-        # Math & Computing
-        (
-            "What is the square root of 144?",
-            "12",
-            ["14", "11", "13"],
-        ),
-        (
-            "What does CPU stand for?",
-            "Central Processing Unit",
-            ["Central Power Unit", "Computer Processing Unit", "Central Program Unit"],
-        ),
-        (
-            "What is the value of pi rounded to two decimal places?",
-            "3.14",
-            ["3.41", "3.12", "2.14"],
-        ),
-        (
-            "Who is considered the father of computer science?",
-            "Alan Turing",
-            ["Charles Babbage", "John von Neumann", "Ada Lovelace"],
-        ),
-        (
-            "What does HTML stand for?",
-            "HyperText Markup Language",
-            ["HyperText Machine Language", "HighText Markup Language", "HyperTool Markup Language"],
-        ),
-    ]
-    for index, (question, correct_answer, wrong_answers) in enumerate(data):
-        group_id = f"qa::{index}"
-        for answer in [correct_answer, *wrong_answers]:
-            rows.append(
-                CandidateExample(
-                    dataset_name="qa",
-                    group_id=group_id,
-                    question=question,
-                    answer=answer,
-                    prompt=_make_prompt(question, answer),
-                    label=answer == correct_answer,
-                )
-            )
-    return rows
-
-
-def _build_repeng_truthful_dataset(
-    dataset_path: Path,
-    max_pairs: int = 100,
-    seed: int = 0,
+def _build_binary_text_dataset(
+    dataset_name: str,
+    hf_path: str,
+    hf_name: str | None,
+    split: str,
+    text_field: str,
+    label_field: str,
+    question_text: str,
+    class_names: list[str],
+    max_groups: int,
+    seed: int,
 ) -> list[CandidateExample]:
-    """Build the RepEng self-report truthfulness dataset from a JSONL file.
-
-    Each line in the JSONL contains a statement and an 'honest' flag.
-    We pair honest and dishonest statements into contrast groups of 2.
-    This dataset tests meta-cognitive truthfulness (the model judging
-    its own honesty) rather than factual correctness.
-
-    Source: https://github.com/mishajw/repeng — truthful.jsonl
-    """
+    ds = _load_hf(hf_path, hf_name, split)
     rows: list[CandidateExample] = []
+    groups = 0
+    for idx in _shuffled_indices(len(ds), seed):
+        if groups >= max_groups:
+            break
+        item = ds[idx]
+        true_label = int(item[label_field])
+        if true_label not in (0, 1):
+            continue
+        question = f"{question_text}\n\n{_clip(item[text_field])}"
+        candidates = [
+            (class_names[0], true_label == 0),
+            (class_names[1], true_label == 1),
+        ]
+        _emit(rows, dataset_name, f"{dataset_name}::{idx}", question, candidates)
+        groups += 1
+    return rows
+
+
+def _build_multiclass_text_dataset(
+    dataset_name: str,
+    hf_path: str,
+    hf_name: str | None,
+    split: str,
+    text_field: str,
+    label_field: str,
+    question_text: str,
+    class_names: list[str],
+    max_groups: int,
+    seed: int,
+    num_distractors: int = 3,
+) -> list[CandidateExample]:
+    ds = _load_hf(hf_path, hf_name, split)
+    rng = Random(seed)
+    rows: list[CandidateExample] = []
+    groups = 0
+    for idx in _shuffled_indices(len(ds), seed):
+        if groups >= max_groups:
+            break
+        item = ds[idx]
+        true_label = int(item[label_field])
+        if not 0 <= true_label < len(class_names):
+            continue
+        wrong = [name for i, name in enumerate(class_names) if i != true_label]
+        rng.shuffle(wrong)
+        candidates = [(class_names[true_label], True)]
+        candidates.extend((name, False) for name in wrong[:num_distractors])
+        rng.shuffle(candidates)
+        question = f"{question_text}\n\n{_clip(item[text_field])}"
+        _emit(rows, dataset_name, f"{dataset_name}::{idx}", question, candidates)
+        groups += 1
+    return rows
+
+
+def _build_multiple_choice_dataset(
+    dataset_name: str,
+    hf_path: str,
+    hf_name: str | None,
+    split: str,
+    max_groups: int,
+    seed: int,
+    extract: Callable[[dict], tuple[str, list[tuple[str, bool]]] | None],
+) -> list[CandidateExample]:
+    ds = _load_hf(hf_path, hf_name, split)
+    rows: list[CandidateExample] = []
+    groups = 0
+    for idx in _shuffled_indices(len(ds), seed):
+        if groups >= max_groups:
+            break
+        parsed = extract(ds[idx])
+        if parsed is None:
+            continue
+        question, candidates = parsed
+        _emit(rows, dataset_name, f"{dataset_name}::{idx}", question, candidates)
+        if any(label for _, label in candidates) and not all(label for _, label in candidates):
+            groups += 1
+    return rows
+
+
+def _facts(max_groups: int, seed: int) -> list[CandidateExample]:
+    """Small GoT-style factual contrast dataset built locally."""
+    city_country = [
+        ("Paris", "France"),
+        ("Tokyo", "Japan"),
+        ("Ottawa", "Canada"),
+        ("Canberra", "Australia"),
+        ("Cairo", "Egypt"),
+        ("Nairobi", "Kenya"),
+        ("Madrid", "Spain"),
+        ("Rome", "Italy"),
+        ("Brasilia", "Brazil"),
+        ("Seoul", "South Korea"),
+        ("Dublin", "Ireland"),
+        ("Lisbon", "Portugal"),
+        ("Warsaw", "Poland"),
+        ("Athens", "Greece"),
+        ("Hanoi", "Vietnam"),
+        ("Lima", "Peru"),
+    ]
+    countries = [country for _, country in city_country]
+    rng = Random(seed)
+    groups: list[list[tuple[str, bool]]] = []
+
+    for city, country in city_country:
+        wrong_country = rng.choice([candidate for candidate in countries if candidate != country])
+        groups.append(
+            [
+                (f"The city of {city} is in {country}.", True),
+                (f"The city of {city} is in {wrong_country}.", False),
+            ]
+        )
+
+    number_pairs = [(2, 9), (4, 17), (8, 3), (12, 19), (21, 13), (31, 44), (50, 7)]
+    for left, right in number_pairs:
+        if left < right:
+            groups.append(
+                [
+                    (f"{left} is less than {right}.", True),
+                    (f"{left} is greater than {right}.", False),
+                ]
+            )
+        else:
+            groups.append(
+                [
+                    (f"{left} is greater than {right}.", True),
+                    (f"{left} is less than {right}.", False),
+                ]
+            )
+
+    rng.shuffle(groups)
+    rows: list[CandidateExample] = []
+    question = "Which statement is factually correct?"
+    for idx, candidates in enumerate(groups[:max_groups]):
+        rng.shuffle(candidates)
+        _emit(rows, "facts", f"facts::{idx}", question, candidates)
+    return rows
+
+
+def _imdb(max_groups: int, seed: int) -> list[CandidateExample]:
+    return _build_binary_text_dataset(
+        "imdb",
+        "stanfordnlp/imdb",
+        None,
+        "test",
+        "text",
+        "label",
+        "What is the sentiment of the following movie review?",
+        ["negative", "positive"],
+        max_groups,
+        seed,
+    )
+
+
+def _amazon_polarity(max_groups: int, seed: int) -> list[CandidateExample]:
+    return _build_binary_text_dataset(
+        "amazon_polarity",
+        "fancyzhx/amazon_polarity",
+        None,
+        "test",
+        "content",
+        "label",
+        "What is the sentiment of the following product review?",
+        ["negative", "positive"],
+        max_groups,
+        seed,
+    )
+
+
+def _ag_news(max_groups: int, seed: int) -> list[CandidateExample]:
+    return _build_multiclass_text_dataset(
+        "ag_news",
+        "fancyzhx/ag_news",
+        None,
+        "test",
+        "text",
+        "label",
+        "What is the topic of the following news article?",
+        ["World", "Sports", "Business", "Science and technology"],
+        max_groups,
+        seed,
+    )
+
+
+def _dbpedia_14(max_groups: int, seed: int) -> list[CandidateExample]:
+    return _build_multiclass_text_dataset(
+        "dbpedia_14",
+        "fancyzhx/dbpedia_14",
+        None,
+        "test",
+        "content",
+        "label",
+        "What category does the following text belong to?",
+        [
+            "Company",
+            "Educational institution",
+            "Artist",
+            "Athlete",
+            "Office holder",
+            "Mean of transportation",
+            "Building",
+            "Natural place",
+            "Village",
+            "Animal",
+            "Plant",
+            "Album",
+            "Film",
+            "Written work",
+        ],
+        max_groups,
+        seed,
+    )
+
+
+def _rte(max_groups: int, seed: int) -> list[CandidateExample]:
+    def extract(item: dict):
+        question = (
+            f"Premise: {_clip(item['sentence1'])}\n"
+            f"Hypothesis: {_clip(item['sentence2'])}\n\n"
+            "Does the premise entail the hypothesis?"
+        )
+        entailment = int(item["label"]) == 0
+        return question, [("Yes", entailment), ("No", not entailment)]
+
+    return _build_multiple_choice_dataset("rte", "nyu-mll/glue", "rte", "validation", max_groups, seed, extract)
+
+
+def _boolq(max_groups: int, seed: int) -> list[CandidateExample]:
+    def extract(item: dict):
+        question = f"Passage: {_clip(item['passage'])}\n\nQuestion: {item['question']}?"
+        answer = bool(item["answer"])
+        return question, [("Yes", answer), ("No", not answer)]
+
+    return _build_multiple_choice_dataset("boolq", "google/boolq", None, "validation", max_groups, seed, extract)
+
+
+def _arc(dataset_name: str, hf_name: str, max_groups: int, seed: int) -> list[CandidateExample]:
+    def extract(item: dict):
+        choices = item["choices"]
+        texts, labels = choices["text"], choices["label"]
+        answer_key = item["answerKey"]
+        candidates = [(text, label == answer_key) for text, label in zip(texts, labels)]
+        return item["question"], candidates
+
+    return _build_multiple_choice_dataset(
+        dataset_name,
+        "allenai/ai2_arc",
+        hf_name,
+        "validation",
+        max_groups,
+        seed,
+        extract,
+    )
+
+
+def _openbookqa(max_groups: int, seed: int) -> list[CandidateExample]:
+    def extract(item: dict):
+        choices = item["choices"]
+        texts, labels = choices["text"], choices["label"]
+        answer_key = item["answerKey"]
+        candidates = [(text, label == answer_key) for text, label in zip(texts, labels)]
+        return item["question_stem"], candidates
+
+    return _build_multiple_choice_dataset(
+        "openbookqa",
+        "allenai/openbookqa",
+        "main",
+        "validation",
+        max_groups,
+        seed,
+        extract,
+    )
+
+
+def _commonsense_qa(max_groups: int, seed: int) -> list[CandidateExample]:
+    def extract(item: dict):
+        choices = item["choices"]
+        texts, labels = choices["text"], choices["label"]
+        answer_key = item["answerKey"]
+        if not answer_key:
+            return None
+        candidates = [(text, label == answer_key) for text, label in zip(texts, labels)]
+        return item["question"], candidates
+
+    return _build_multiple_choice_dataset(
+        "commonsense_qa",
+        "tau/commonsense_qa",
+        None,
+        "validation",
+        max_groups,
+        seed,
+        extract,
+    )
+
+
+def _piqa(max_groups: int, seed: int) -> list[CandidateExample]:
+    def extract(item: dict):
+        question = f"Goal: {_clip(item['goal'])}\n\nWhich solution is more appropriate?"
+        correct = int(item["label"])
+        return question, [
+            (_clip(item["sol1"]), correct == 0),
+            (_clip(item["sol2"]), correct == 1),
+        ]
+
+    return _build_multiple_choice_dataset("piqa", "ybisk/piqa", None, "validation", max_groups, seed, extract)
+
+
+def _truthful_qa(max_groups: int, seed: int) -> list[CandidateExample]:
+    def extract(item: dict):
+        targets = item["mc1_targets"]
+        choices, labels = targets["choices"], targets["labels"]
+        candidates = [(choice, bool(label)) for choice, label in zip(choices, labels)]
+        return item["question"], candidates
+
+    return _build_multiple_choice_dataset(
+        "truthful_qa",
+        "truthfulqa/truthful_qa",
+        "multiple_choice",
+        "validation",
+        max_groups,
+        seed,
+        extract,
+    )
+
+
+def _repeng_truthful(dataset_path: Path, max_groups: int, seed: int) -> list[CandidateExample]:
     if not dataset_path.exists():
-        return rows
-
-    honest_statements: list[str] = []
-    dishonest_statements: list[str] = []
-
+        return []
+    honest, dishonest = [], []
     with dataset_path.open("r", encoding="utf-8") as handle:
         for raw_line in handle:
             line = raw_line.strip()
             if not line:
                 continue
-            parsed = json.loads(line)
-            value = parsed.get("value", {})
+            value = json.loads(line).get("value", {})
             statement = str(value.get("statement", "")).strip()
-            is_honest = bool(value.get("honest", False))
             if not statement:
                 continue
-            if is_honest:
-                honest_statements.append(statement)
+            if bool(value.get("honest", False)):
+                honest.append(statement)
             else:
-                dishonest_statements.append(statement)
+                dishonest.append(statement)
 
-    random = Random(seed)
-    random.shuffle(honest_statements)
-    random.shuffle(dishonest_statements)
-
-    pair_count = min(len(honest_statements), len(dishonest_statements), max_pairs)
+    rng = Random(seed)
+    rng.shuffle(honest)
+    rng.shuffle(dishonest)
+    rows: list[CandidateExample] = []
     question = "Is this self-report statement truthful?"
-
-    for index in range(pair_count):
-        group_id = f"repeng_truthful::{index}"
-        true_answer = honest_statements[index]
-        false_answer = dishonest_statements[index]
-
-        rows.append(
-            CandidateExample(
-                dataset_name="repeng_truthful",
-                group_id=group_id,
-                question=question,
-                answer=true_answer,
-                prompt=_make_prompt(question, true_answer),
-                label=True,
-            )
+    for idx in range(min(len(honest), len(dishonest), max_groups)):
+        _emit(
+            rows,
+            "repeng_truthful",
+            f"repeng_truthful::{idx}",
+            question,
+            [(honest[idx], True), (dishonest[idx], False)],
         )
-        rows.append(
-            CandidateExample(
-                dataset_name="repeng_truthful",
-                group_id=group_id,
-                question=question,
-                answer=false_answer,
-                prompt=_make_prompt(question, false_answer),
-                label=False,
-            )
-        )
-
-    return rows
-
-
-def _build_truthfulqa_dataset(max_groups: int = 100, seed: int = 0) -> list[CandidateExample]:
-    """Load TruthfulQA multiple-choice from HuggingFace.
-
-    TruthfulQA (Lin et al., 2022) is a benchmark of 817 questions designed
-    to test whether models reproduce common misconceptions.  Each question
-    has several correct and several incorrect answer choices.  We pair them
-    into contrast groups.
-
-    This is one of the key benchmarks used in the original RepE paper.
-    """
-    from datasets import load_dataset
-
-    ds = load_dataset("truthful_qa", "multiple_choice", split="validation")
-    rows: list[CandidateExample] = []
-    random = Random(seed)
-    indices = list(range(len(ds)))
-    random.shuffle(indices)
-
-    for idx in indices[:max_groups]:
-        item = ds[idx]
-        question = item["question"]
-        choices = item["mc1_targets"]["choices"]
-        labels = item["mc1_targets"]["labels"]
-        group_id = f"truthfulqa::{idx}"
-        for answer, lbl in zip(choices, labels):
-            rows.append(CandidateExample(
-                dataset_name="truthfulqa",
-                group_id=group_id,
-                question=question,
-                answer=answer,
-                prompt=_make_prompt(question, answer),
-                label=bool(lbl),
-            ))
-    return rows
-
-
-def _build_arc_dataset(
-    difficulty: str = "ARC-Easy",
-    max_groups: int = 100,
-    seed: int = 0,
-) -> list[CandidateExample]:
-    """Load ARC (AI2 Reasoning Challenge) from HuggingFace.
-
-    ARC (Clark et al., 2018) contains science exam questions at two
-    difficulty levels.  Each question has 3-5 multiple-choice answers.
-    Used in the original RepE comparison pipeline.
-    """
-    from datasets import load_dataset
-
-    ds = load_dataset("allenai/ai2_arc", difficulty, split="validation")
-    ds_name = "arc_easy" if "Easy" in difficulty else "arc_challenge"
-    rows: list[CandidateExample] = []
-    random = Random(seed)
-    indices = list(range(len(ds)))
-    random.shuffle(indices)
-
-    for idx in indices[:max_groups]:
-        item = ds[idx]
-        question = item["question"]
-        choices = item["choices"]["text"]
-        answer_key = item["answerKey"]
-        choice_labels = item["choices"]["label"]
-        group_id = f"{ds_name}::{idx}"
-        for choice_text, choice_label in zip(choices, choice_labels):
-            is_correct = choice_label == answer_key
-            rows.append(CandidateExample(
-                dataset_name=ds_name,
-                group_id=group_id,
-                question=question,
-                answer=choice_text,
-                prompt=_make_prompt(question, choice_text),
-                label=is_correct,
-            ))
-    return rows
-
-
-def _build_boolq_dataset(max_groups: int = 100, seed: int = 0) -> list[CandidateExample]:
-    """Load BoolQ (Boolean Questions) from HuggingFace.
-
-    BoolQ (Clark et al., 2019) contains yes/no questions derived from
-    real web queries.  Each question has a passage and a boolean answer.
-    Used in the RepE DLK (Discovering Latent Knowledge) comparison.
-    """
-    from datasets import load_dataset
-
-    ds = load_dataset("google/boolq", split="validation")
-    rows: list[CandidateExample] = []
-    random = Random(seed)
-    indices = list(range(len(ds)))
-    random.shuffle(indices)
-
-    for idx in indices[:max_groups]:
-        item = ds[idx]
-        question = item["question"]
-        correct_answer = "Yes" if item["answer"] else "No"
-        wrong_answer = "No" if item["answer"] else "Yes"
-        group_id = f"boolq::{idx}"
-        for answer, label in [(correct_answer, True), (wrong_answer, False)]:
-            rows.append(CandidateExample(
-                dataset_name="boolq",
-                group_id=group_id,
-                question=question,
-                answer=answer,
-                prompt=_make_prompt(question, answer),
-                label=label,
-            ))
     return rows
 
 
 def build_dataset_collection(
-    shuffle: bool = True,
+    dataset_names: list[str] | None = None,
+    max_groups: int = 80,
     seed: int = 0,
-    include_repeng_truthful: bool = True,
+    shuffle: bool = True,
     repeng_truthful_path: str | Path | None = None,
-    include_hf_datasets: bool = True,
-    max_hf_groups: int = 100,
+    verbose: bool = True,
 ) -> DatasetCollection:
-    """Assemble all sub-datasets into a single DatasetCollection.
+    """Build a collection of grouped true/false candidate prompts."""
+    requested = [normalise_dataset_name(name) for name in (dataset_names or DEFAULT_DATASET_NAMES)]
+    if repeng_truthful_path is not None:
+        truthful_path = Path(repeng_truthful_path)
+    else:
+        truthful_path = Path(__file__).resolve().parents[2] / "data" / "raw" / "repeng" / "truthful.jsonl"
 
-    Returns a DatasetCollection containing:
-    - Hand-crafted: cities, larger_than, qa
-    - RepEng local: repeng_truthful (from truthful.jsonl)
-    - HuggingFace benchmarks (from the RepE paper): truthfulqa, arc_easy,
-      arc_challenge, boolq
+    loaders: dict[str, Callable[[], list[CandidateExample]]] = {
+        "facts": lambda: _facts(max_groups, seed),
+        "imdb": lambda: _imdb(max_groups, seed),
+        "amazon_polarity": lambda: _amazon_polarity(max_groups, seed),
+        "ag_news": lambda: _ag_news(max_groups, seed),
+        "dbpedia_14": lambda: _dbpedia_14(max_groups, seed),
+        "rte": lambda: _rte(max_groups, seed),
+        "boolq": lambda: _boolq(max_groups, seed),
+        "arc_easy": lambda: _arc("arc_easy", "ARC-Easy", max_groups, seed),
+        "arc_challenge": lambda: _arc("arc_challenge", "ARC-Challenge", max_groups, seed),
+        "openbookqa": lambda: _openbookqa(max_groups, seed),
+        "commonsense_qa": lambda: _commonsense_qa(max_groups, seed),
+        "piqa": lambda: _piqa(max_groups, seed),
+        "truthful_qa": lambda: _truthful_qa(max_groups, seed),
+        "repeng_truthful": lambda: _repeng_truthful(truthful_path, max_groups, seed),
+    }
 
-    Each row has columns: dataset_name, group_id, question, answer, prompt, label.
-    """
-    rows = [
-        *_build_cities_dataset(),
-        *_build_larger_than_dataset(),
-        *_build_qa_dataset(),
-    ]
+    rows: list[CandidateExample] = []
+    for name in requested:
+        if name not in loaders:
+            if verbose:
+                print(f"[skip]  {name}: unknown dataset name")
+            continue
+        try:
+            dataset_rows = loaders[name]()
+        except Exception as error:  # noqa: BLE001 - one failed dataset should not kill the run
+            if verbose:
+                print(f"[skip]  {name}: {type(error).__name__}: {error}")
+            continue
+        if not dataset_rows:
+            if verbose:
+                print(f"[skip]  {name}: produced no rows")
+            continue
+        rows.extend(dataset_rows)
+        if verbose:
+            n_groups = len({row.group_id for row in dataset_rows})
+            print(f"[ok]    {name}: {n_groups} groups, {len(dataset_rows)} candidate prompts")
 
-    if include_repeng_truthful:
-        if repeng_truthful_path is not None:
-            dataset_path = Path(repeng_truthful_path)
-        else:
-            project_root = Path(__file__).resolve().parents[2]
-            dataset_path = project_root / "data" / "raw" / "repeng" / "truthful.jsonl"
-        rows.extend(_build_repeng_truthful_dataset(dataset_path=dataset_path, seed=seed))
-
-    if include_hf_datasets:
-        rows.extend(_build_truthfulqa_dataset(max_groups=max_hf_groups, seed=seed))
-        rows.extend(_build_arc_dataset("ARC-Easy", max_groups=max_hf_groups, seed=seed))
-        rows.extend(_build_arc_dataset("ARC-Challenge", max_groups=max_hf_groups, seed=seed))
-        rows.extend(_build_boolq_dataset(max_groups=max_hf_groups, seed=seed))
+    if not rows:
+        raise RuntimeError("No dataset could be loaded. Check the dataset names and network access.")
 
     frame = pd.DataFrame([row.__dict__ for row in rows])
     if shuffle:
-        random = Random(seed)
         order = list(frame.index)
-        random.shuffle(order)
+        Random(seed).shuffle(order)
         frame = frame.loc[order].reset_index(drop=True)
     return DatasetCollection(frame=frame)
 
@@ -587,24 +610,24 @@ def split_groups(
     validation_fraction: float = 0.2,
     seed: int = 0,
 ) -> dict[str, pd.DataFrame]:
-    """Split question groups into train / validation / test sets.
-
-    Splitting is done at the *group* level (not the row level) so that
-    all candidate answers for the same question stay in the same split.
-    This prevents data leakage between splits.
-    """
-    if train_fraction <= 0 or validation_fraction <= 0:
-        raise ValueError("Fractions must be strictly positive.")
+    """Split at group level to prevent candidates from leaking across splits."""
+    if not 0 < train_fraction < 1:
+        raise ValueError("train_fraction must be in (0, 1).")
+    if not 0 <= validation_fraction < 1:
+        raise ValueError("validation_fraction must be in [0, 1).")
     if train_fraction + validation_fraction >= 1:
-        raise ValueError("Train plus validation fraction must be smaller than 1.")
+        raise ValueError("train_fraction + validation_fraction must be < 1.")
 
     group_ids = frame["group_id"].drop_duplicates().tolist()
-    random = Random(seed)
-    random.shuffle(group_ids)
-
+    Random(seed).shuffle(group_ids)
     n_groups = len(group_ids)
+    if n_groups < 3:
+        raise ValueError("At least three groups are needed for train/validation/test splits.")
+
     train_end = max(1, int(n_groups * train_fraction))
-    validation_end = max(train_end + 1, int(n_groups * (train_fraction + validation_fraction)))
+    validation_end = int(n_groups * (train_fraction + validation_fraction))
+    validation_end = max(train_end + 1, validation_end)
+    validation_end = min(validation_end, n_groups - 1)
 
     train_groups = set(group_ids[:train_end])
     validation_groups = set(group_ids[train_end:validation_end])

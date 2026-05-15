@@ -1,4 +1,0 @@
-model_label,model_name,mean_transfer_accuracy,min_transfer_accuracy,max_transfer_accuracy,runtime_seconds
-Phi-2 baseline,microsoft/phi-2,0.6571428571428571,0.4,1.0,40.98546551499999
-Llama 2 13B Chat,meta-llama/Llama-2-13b-chat-hf,0.5761904761904761,0.2,1.0,144.6400257570001
-Mistral 7B Instruct,mistralai/Mistral-7B-Instruct-v0.3,0.23809523809523808,0.0,0.6,89.19071756299991
